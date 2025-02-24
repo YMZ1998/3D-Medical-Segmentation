@@ -17,6 +17,7 @@ from monai.transforms import (
     Spacingd,
     SpatialPadd,
 )
+from monai.networks.nets import DynUNet, UNet, UNETR
 
 warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="torch")
@@ -28,7 +29,7 @@ def get_xforms(mode="train", keys=("image", "label")):
 
     xforms = [
         LoadImaged(keys, ensure_channel_first=True, image_only=True),
-        Orientationd(keys, axcodes="LPS"),
+        Orientationd(keys, axcodes="LPI"),
         Spacingd(keys, pixdim=(1.25, 1.25, 5.0), mode=("bilinear", "nearest")[: len(keys)]),
         ScaleIntensityRanged(keys[0], a_min=-1000.0, a_max=500.0, b_min=0.0, b_max=1.0, clip=True),
     ]
@@ -45,9 +46,9 @@ def get_xforms(mode="train", keys=("image", "label")):
                 ),
                 RandCropByPosNegLabeld(keys, label_key=keys[1], spatial_size=(192, 192, 16), num_samples=3),
                 RandGaussianNoised(keys[0], prob=0.15, std=0.01),
-                RandFlipd(keys, spatial_axis=0, prob=0.5),
-                RandFlipd(keys, spatial_axis=1, prob=0.5),
-                RandFlipd(keys, spatial_axis=2, prob=0.5),
+                # RandFlipd(keys, spatial_axis=0, prob=0.5),
+                # RandFlipd(keys, spatial_axis=1, prob=0.5),
+                # RandFlipd(keys, spatial_axis=2, prob=0.5),
             ]
         )
         dtype = (torch.float32, torch.uint8)
@@ -59,12 +60,11 @@ def get_xforms(mode="train", keys=("image", "label")):
     return monai.transforms.Compose(xforms)
 
 
-def get_net(model_name="dynunet"):
+def get_net(model_name="unet"):
     """returns a unet model instance."""
 
     num_classes = 2
     if model_name == "dynunet":
-        from monai.networks.nets import DynUNet
         net = DynUNet(
             spatial_dims=3,
             in_channels=1,
@@ -75,12 +75,27 @@ def get_net(model_name="dynunet"):
             dropout=0.1,
         )
     elif model_name == "unet":
-        net = monai.networks.nets.BasicUNet(
+        net = UNet(
             spatial_dims=3,
             in_channels=1,
             out_channels=num_classes,
-            features=(32, 32, 64, 128, 256, 32),
-            dropout=0.1,
+            channels=(16, 32, 64, 128, 256),
+            strides=(2, 2, 2, 2),
+            num_res_units=2,
+        )
+    elif model_name == 'unetr':
+        model = UNETR(
+            in_channels=1,
+            out_channels=14,
+            img_size=(192, 192, 16),
+            feature_size=16,
+            hidden_size=768,
+            mlp_dim=3072,
+            num_heads=12,
+            proj_type="perceptron",
+            norm_name="instance",
+            res_block=True,
+            dropout_rate=0.0,
         )
     else:
         raise ValueError(f"model_name {model_name} not supported")

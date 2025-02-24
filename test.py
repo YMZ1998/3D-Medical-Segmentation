@@ -29,7 +29,7 @@ def infer(data_folder, model_folder, prediction_folder):
 
     net = get_net().to(device)
     checkpoint = torch.load(ckpt, weights_only=False, map_location='cpu')
-    net.load_state_dict(checkpoint)
+    net.load_state_dict(checkpoint["net"])
     net.eval()
 
     # Load the images and labels
