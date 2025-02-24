@@ -1,14 +1,3 @@
-# Copyright (c) MONAI Consortium
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import argparse
 import glob
 import logging
@@ -17,6 +6,7 @@ import shutil
 import sys
 
 import monai
+import numpy as np
 import torch
 from monai.metrics import DiceMetric
 from monai.transforms import RandGaussianNoised
@@ -35,9 +25,11 @@ def infer(data_folder, model_folder, prediction_folder):
     logging.info(f"using {ckpt}.")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(device)
+    print(f"Using device: {device}")
+
     net = get_net().to(device)
-    net.load_state_dict(torch.load(ckpt, map_location=device))
+    checkpoint = torch.load(ckpt, weights_only=False, map_location='cpu')
+    net.load_state_dict(checkpoint)
     net.eval()
 
     # Load the images and labels
@@ -65,6 +57,7 @@ def infer(data_folder, model_folder, prediction_folder):
     # Initialize the Dice Metric for evaluation
     dice_metric = DiceMetric(include_background=False, reduction="mean", get_not_nans=True)
 
+    dice_scores = []
     with torch.no_grad():
         for infer_data in infer_loader:
             logging.info(f"segmenting {infer_data['image'].meta['filename_or_obj']}")
@@ -87,24 +80,23 @@ def infer(data_folder, model_folder, prediction_folder):
             preds = (preds.argmax(dim=1, keepdims=True)).float()
 
             # Compute Dice Coefficient
-            dice_metric(y_pred=preds, y=infer_data["label"].to(device))
+            dice = dice_metric(y_pred=preds, y=infer_data["label"].to(device))
+            dice_scores.append(dice.item())
 
             for p in preds:  # save each image+metadata in the batch respectively
                 saver(p)
 
-    # Calculate the mean Dice score for the entire dataset
-    mean_dice = dice_metric.aggregate().item()
-    logging.info(f"Mean Dice score: {mean_dice}")
+    logging.info(f"Average Dice Score: {np.mean(dice_scores):.4f}")
 
     # Copy the saved segmentations into the required folder structure for submission
-    submission_dir = os.path.join(prediction_folder, "to_submit")
-    if not os.path.exists(submission_dir):
-        os.makedirs(submission_dir)
-    files = glob.glob(os.path.join(prediction_folder, "*", "*.nii.gz"))
-    for f in files:
-        to_name = os.path.join(submission_dir, os.path.basename(f))
-        shutil.copy(f, to_name)
-    logging.info(f"predictions copied to {submission_dir}.")
+    # submission_dir = os.path.join(prediction_folder, "to_submit")
+    # if not os.path.exists(submission_dir):
+    #     os.makedirs(submission_dir)
+    # files = glob.glob(os.path.join(prediction_folder, "*", "*.nii.gz"))
+    # for f in files:
+    #     to_name = os.path.join(submission_dir, os.path.basename(f))
+    #     shutil.copy(f, to_name)
+    # logging.info(f"predictions copied to {submission_dir}.")
 
 
 if __name__ == "__main__":

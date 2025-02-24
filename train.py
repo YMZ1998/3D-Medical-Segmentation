@@ -1,14 +1,3 @@
-# Copyright (c) MONAI Consortium
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import argparse
 import glob
 import logging
@@ -32,8 +21,8 @@ def train(data_folder, model_folder, resume=False):
     os.makedirs(model_folder, exist_ok=True)
 
     # Images and labels
-    images = sorted(glob.glob(os.path.join(data_folder, "image", "*.nii.gz")))[:5]
-    labels = sorted(glob.glob(os.path.join(data_folder, "label", "*.nii.gz")))[:5]
+    images = sorted(glob.glob(os.path.join(data_folder, "image", "*.nii.gz")))[:]
+    labels = sorted(glob.glob(os.path.join(data_folder, "label", "*.nii.gz")))[:]
     logging.info(f"training: image/label ({len(images)}) folder: {data_folder}")
 
     # Other parameters
@@ -65,14 +54,14 @@ def train(data_folder, model_folder, resume=False):
     val_ds = monai.data.Dataset(data=val_files, transform=val_transforms)
     val_loader = monai.data.DataLoader(
         val_ds,
-        batch_size=1,  # image-level batch to the sliding window method, not the window-level batch
+        batch_size=1,
         num_workers=8,
         pin_memory=torch.cuda.is_available(),
     )
 
     # Create Model, DiceLoss and Adam optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(device)
+    print(f"Using device: {device}")
 
     net = get_net().to(device)
     max_epochs, lr, momentum = 500, 1e-4, 0.95
