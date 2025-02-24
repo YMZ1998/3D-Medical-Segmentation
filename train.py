@@ -130,8 +130,10 @@ class DiceCELoss(nn.Module):
         return dice + cross_entropy
 
 
-def train(data_folder=".", model_folder="runs"):
+def train(data_folder, model_folder):
     """run a training pipeline."""
+
+    os.makedirs(model_folder, exist_ok=True)
 
     images = sorted(glob.glob(os.path.join(data_folder, "image", "*.nii.gz")))[:]
     labels = sorted(glob.glob(os.path.join(data_folder, "label", "*.nii.gz")))[:]
@@ -156,7 +158,7 @@ def train(data_folder=".", model_folder="runs"):
         train_ds,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=2,
+        num_workers=8,
         pin_memory=torch.cuda.is_available(),
     )
 
@@ -166,7 +168,7 @@ def train(data_folder=".", model_folder="runs"):
     val_loader = monai.data.DataLoader(
         val_ds,
         batch_size=1,  # image-level batch to the sliding window method, not the window-level batch
-        num_workers=2,
+        num_workers=8,
         pin_memory=torch.cuda.is_available(),
     )
 
@@ -218,7 +220,7 @@ def train(data_folder=".", model_folder="runs"):
     trainer.run()
 
 
-def infer(data_folder=".", model_folder="runs", prediction_folder="output"):
+def infer(data_folder, model_folder, prediction_folder):
     """
     run inference, the output folder will be "./output"
     """
