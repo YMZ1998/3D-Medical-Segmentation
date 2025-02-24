@@ -15,44 +15,23 @@ import logging
 import os
 import shutil
 import sys
-import warnings
 
 import monai
 import torch
-from monai.transforms import (
-    RandGaussianNoised,
-)
+from monai.metrics import DiceMetric
+from monai.transforms import RandGaussianNoised
 
-from utils import remove_and_create_dir
-from train import get_xforms, get_net
-
-warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
-warnings.filterwarnings("ignore", category=DeprecationWarning, module="torch")
-
-
-def get_inferer(_mode=None):
-    """returns a sliding window inference instance."""
-
-    patch_size = (192, 192, 16)
-    sw_batch_size, overlap = 2, 0.5
-    inferer = monai.inferers.SlidingWindowInferer(
-        roi_size=patch_size,
-        sw_batch_size=sw_batch_size,
-        overlap=overlap,
-        mode="gaussian",
-        padding_mode="replicate",
-    )
-    return inferer
+from utils import remove_and_create_dir, get_xforms, get_net, get_inferer
 
 
 def infer(data_folder, model_folder, prediction_folder):
     remove_and_create_dir(prediction_folder)
 
+    # Load the checkpoint
     ckpts = sorted(glob.glob(os.path.join(model_folder, "*.pt")))
     ckpt = ckpts[-1]
     for x in ckpts:
         logging.info(f"available model file: {x}.")
-    logging.info("----")
     logging.info(f"using {ckpt}.")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -61,17 +40,20 @@ def infer(data_folder, model_folder, prediction_folder):
     net.load_state_dict(torch.load(ckpt, map_location=device))
     net.eval()
 
+    # Load the images and labels
     image_folder = os.path.abspath(data_folder)
     images = sorted(glob.glob(os.path.join(image_folder, "image", "*.nii.gz")))[:2]
+    labels = sorted(glob.glob(os.path.join(image_folder, "label", "*.nii.gz")))[:2]
     logging.info(f"infer: image ({len(images)}) folder: {data_folder}")
-    infer_files = [{"image": img} for img in images]
+    infer_files = [{"image": img, "label": label} for img, label in zip(images, labels)]
 
-    keys = ("image",)
-    infer_transforms = get_xforms("infer", keys)
+    # Define the transformations
+    keys = ("image", "label")
+    infer_transforms = get_xforms("val", keys)
     infer_ds = monai.data.Dataset(data=infer_files, transform=infer_transforms)
     infer_loader = monai.data.DataLoader(
         infer_ds,
-        batch_size=1,  # image-level batch to the sliding window method, not the window-level batch
+        batch_size=1,
         num_workers=8,
         pin_memory=torch.cuda.is_available(),
     )
@@ -79,14 +61,19 @@ def infer(data_folder, model_folder, prediction_folder):
     inferer = get_inferer()
     saver = monai.transforms.SaveImage(output_dir=prediction_folder, output_postfix='seg', mode="nearest",
                                        resample=True, output_dtype="int8")
+
+    # Initialize the Dice Metric for evaluation
+    dice_metric = DiceMetric(include_background=False, reduction="mean", get_not_nans=True)
+
     with torch.no_grad():
         for infer_data in infer_loader:
             logging.info(f"segmenting {infer_data['image'].meta['filename_or_obj']}")
             preds = inferer(infer_data[keys[0]].to(device), net)
+
+            # Apply test time augmentations (TTA)
             n = 1.0
             for i in range(2):
                 print(i)
-                # test time augmentations
                 _img = RandGaussianNoised(keys[0], prob=1.0, std=0.01)(infer_data)[keys[0]]
                 pred = inferer(_img.to(device), net)
                 preds = preds + pred
@@ -98,10 +85,18 @@ def infer(data_folder, model_folder, prediction_folder):
                     n = n + 1.0
             preds = preds / n
             preds = (preds.argmax(dim=1, keepdims=True)).float()
+
+            # Compute Dice Coefficient
+            dice_metric(y_pred=preds, y=infer_data["label"].to(device))
+
             for p in preds:  # save each image+metadata in the batch respectively
                 saver(p)
 
-    # copy the saved segmentations into the required folder structure for submission
+    # Calculate the mean Dice score for the entire dataset
+    mean_dice = dice_metric.aggregate().item()
+    logging.info(f"Mean Dice score: {mean_dice}")
+
+    # Copy the saved segmentations into the required folder structure for submission
     submission_dir = os.path.join(prediction_folder, "to_submit")
     if not os.path.exists(submission_dir):
         os.makedirs(submission_dir)
