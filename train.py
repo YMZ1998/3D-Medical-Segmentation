@@ -232,6 +232,7 @@ def infer(data_folder, model_folder, prediction_folder):
     logging.info(f"using {ckpt}.")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
     net = get_net().to(device)
     net.load_state_dict(torch.load(ckpt, map_location=device))
     net.eval()
