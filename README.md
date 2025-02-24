@@ -15,7 +15,3 @@ pip install pytorch-ignite
 ```
 pip install nibabel
 ```
-
-```
-pip install --upgrade torch
-```

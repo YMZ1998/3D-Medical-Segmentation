@@ -84,10 +84,11 @@ def get_net():
     net = DynUNet(
         spatial_dims=3,
         in_channels=1,
-        out_channels=2,
+        out_channels=num_classes,
         kernel_size=[[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]],
         strides=[[1, 1, 1], [2, 2, 2], [2, 2, 2], [2, 2, 2]],
         upsample_kernel_size=[[2, 2, 2], [2, 2, 2], [2, 2, 2]],
+        dropout=0.1,
     )
     # net = monai.networks.nets.BasicUNet(
     #     spatial_dims=3,
@@ -142,7 +143,7 @@ def train(data_folder, model_folder):
     amp = True  # auto. mixed precision
     keys = ("image", "label")
     train_frac, val_frac = 0.8, 0.2
-    n_train = int(train_frac * len(images)) + 1
+    n_train = int(train_frac * len(images))
     n_val = min(len(images) - n_train, int(val_frac * len(images)))
     logging.info(f"training: train {n_train} val {n_val}, folder: {data_folder}")
 
@@ -221,9 +222,8 @@ def train(data_folder, model_folder):
 
 
 def infer(data_folder, model_folder, prediction_folder):
-    """
-    run inference, the output folder will be "./output"
-    """
+    os.makedirs(prediction_folder, exist_ok=True)
+
     ckpts = sorted(glob.glob(os.path.join(model_folder, "*.pt")))
     ckpt = ckpts[-1]
     for x in ckpts:
@@ -302,6 +302,6 @@ if __name__ == "__main__":
     if args.mode == "train":
         train(data_folder=os.path.join(args.data_folder, "Train"), model_folder=args.model_folder)
     elif args.mode == "infer":
-        infer(data_folder=os.path.join(args.data_folder, "Test"), model_folder=args.model_folder)
+        infer(data_folder=os.path.join(args.data_folder, "Test"), model_folder=args.model_folder, prediction_folder="./predictions")
     else:
         raise ValueError("Unknown mode.")
