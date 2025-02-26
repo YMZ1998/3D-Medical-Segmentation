@@ -9,7 +9,7 @@ from monai.metrics import DiceMetric, MeanIoU, HausdorffDistanceMetric
 from utils import get_xforms
 
 
-def calculate_metrics():
+def calculate_metrics(data_loader):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
@@ -38,8 +38,8 @@ def calculate_metrics():
 
 
 if __name__ == "__main__":
-    prediction_folder = "./predictions"
-    label_folder = "./datasets/Test/label"
+    prediction_folder = "../predictions"
+    label_folder = "../datasets/Test/label"
 
     prediction_files = sorted(glob.glob(os.path.join(prediction_folder, "*", "*.nii.gz")))
     label_files = sorted(glob.glob(os.path.join(label_folder, "*.nii.gz")))[:2]
@@ -59,4 +59,4 @@ if __name__ == "__main__":
     iou_metric = MeanIoU(include_background=False, reduction="mean")
     hd_metric = HausdorffDistanceMetric(include_background=False, reduction="mean")
 
-    calculate_metrics()
+    calculate_metrics(data_loader)

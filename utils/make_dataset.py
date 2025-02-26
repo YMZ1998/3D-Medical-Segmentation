@@ -5,7 +5,7 @@ from utils import remove_and_create_dir
 
 if __name__ == "__main__":
     src = r"D:\Data\CTV_Seg"
-    dst = r"./datasets"
+    dst = r"../datasets"
 
     remove_and_create_dir(dst)
 

@@ -31,11 +31,11 @@ def get_xforms(mode="train", keys=("image", "label")):
         LoadImaged(keys, ensure_channel_first=True, image_only=True),
         Orientationd(keys, axcodes="LPI"),
         Spacingd(keys, pixdim=(1.25, 1.25, 5.0), mode=("bilinear", "nearest")[: len(keys)]),
-        ScaleIntensityRanged(keys[0], a_min=-1000.0, a_max=500.0, b_min=0.0, b_max=1.0, clip=True),
     ]
     if mode == "train":
         xforms.extend(
             [
+                ScaleIntensityRanged(keys[0], a_min=-1000.0, a_max=500.0, b_min=0.0, b_max=1.0, clip=True),
                 SpatialPadd(keys, spatial_size=(192, 192, -1), mode="reflect"),  # ensure at least 192x192
                 RandAffined(
                     keys,
@@ -55,12 +55,13 @@ def get_xforms(mode="train", keys=("image", "label")):
     if mode == "val":
         dtype = (torch.float32, torch.uint8)
     if mode == "infer":
+        xforms.extend([ScaleIntensityRanged(keys[0], a_min=-1000.0, a_max=500.0, b_min=0.0, b_max=1.0, clip=True)])
         dtype = (torch.float32,)
     xforms.extend([CastToTyped(keys, dtype=dtype)])
     return monai.transforms.Compose(xforms)
 
 
-def get_net(model_name="unet"):
+def get_net(model_name="dynunet"):
     """returns a unet model instance."""
 
     num_classes = 2
@@ -132,6 +133,7 @@ class DiceCELoss(nn.Module):
         # Target from pipeline has shape (B, 1, D, H, W)
         cross_entropy = self.cross_entropy(y_pred, torch.squeeze(y_true, dim=1).long())
         return dice + cross_entropy
+
 
 def remove_and_create_dir(path):
     if os.path.exists(path):

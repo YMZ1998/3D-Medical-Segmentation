@@ -12,7 +12,7 @@ from monai.transforms import (
     AsDiscreted,
 )
 
-from utils import get_xforms, get_net, get_inferer, DiceCELoss
+from utils.utils import get_xforms, get_net, get_inferer, DiceCELoss
 
 
 def train(data_folder, model_folder, resume=False):
@@ -45,7 +45,7 @@ def train(data_folder, model_folder, resume=False):
         train_ds,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=8,
+        num_workers=2,
         pin_memory=torch.cuda.is_available(),
     )
 
@@ -55,7 +55,7 @@ def train(data_folder, model_folder, resume=False):
     val_loader = monai.data.DataLoader(
         val_ds,
         batch_size=1,
-        num_workers=8,
+        num_workers=2,
         pin_memory=torch.cuda.is_available(),
     )
 

@@ -2,7 +2,6 @@ import argparse
 import glob
 import logging
 import os
-import shutil
 import sys
 
 import monai
@@ -11,10 +10,10 @@ import torch
 from monai.metrics import DiceMetric
 from monai.transforms import RandGaussianNoised
 
-from utils import remove_and_create_dir, get_xforms, get_net, get_inferer
+from utils.utils import remove_and_create_dir, get_xforms, get_net, get_inferer
 
 
-def infer(data_folder, model_folder, prediction_folder):
+def infer(data_folder, model_folder, prediction_folder,tta=False):
     remove_and_create_dir(prediction_folder)
 
     # Load the checkpoint
@@ -34,8 +33,8 @@ def infer(data_folder, model_folder, prediction_folder):
 
     # Load the images and labels
     image_folder = os.path.abspath(data_folder)
-    images = sorted(glob.glob(os.path.join(image_folder, "image", "*.nii.gz")))[:2]
-    labels = sorted(glob.glob(os.path.join(image_folder, "label", "*.nii.gz")))[:2]
+    images = sorted(glob.glob(os.path.join(image_folder, "image", "*.nii.gz")))[:10]
+    labels = sorted(glob.glob(os.path.join(image_folder, "label", "*.nii.gz")))[:10]
     logging.info(f"infer: image ({len(images)}) folder: {data_folder}")
     infer_files = [{"image": img, "label": label} for img, label in zip(images, labels)]
 
@@ -65,17 +64,18 @@ def infer(data_folder, model_folder, prediction_folder):
 
             # Apply test time augmentations (TTA)
             n = 1.0
-            for i in range(2):
-                print(i)
-                _img = RandGaussianNoised(keys[0], prob=1.0, std=0.01)(infer_data)[keys[0]]
-                pred = inferer(_img.to(device), net)
-                preds = preds + pred
-                n = n + 1.0
-                for dims in [[2], [3]]:
-                    flip_pred = inferer(torch.flip(_img.to(device), dims=dims), net)
-                    pred = torch.flip(flip_pred, dims=dims)
+            if tta:
+                for i in range(4):
+                    print(i)
+                    _img = RandGaussianNoised(keys[0], prob=1.0, std=0.01)(infer_data)[keys[0]]
+                    pred = inferer(_img.to(device), net)
                     preds = preds + pred
                     n = n + 1.0
+                    for dims in [[2], [3]]:
+                        flip_pred = inferer(torch.flip(_img.to(device), dims=dims), net)
+                        pred = torch.flip(flip_pred, dims=dims)
+                        preds = preds + pred
+                        n = n + 1.0
             preds = preds / n
             preds = (preds.argmax(dim=1, keepdims=True)).float()
 
@@ -103,11 +103,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a basic UNet segmentation baseline.")
     parser.add_argument("--data_folder", default=r"./datasets", type=str, help="training data folder")
     parser.add_argument("--model_folder", default="./checkpoints", type=str, help="model folder")
+    parser.add_argument("--tta", default=False, type=bool, help="TTA")
     args = parser.parse_args()
 
-    monai.config.print_config()
-    monai.utils.set_determinism(seed=0)
+    # monai.config.print_config()
+    # monai.utils.set_determinism(seed=0)
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
     infer(data_folder=os.path.join(args.data_folder, "Test"), model_folder=args.model_folder,
-          prediction_folder="./predictions")
+          prediction_folder="./predictions", tta=args.tta)

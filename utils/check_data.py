@@ -20,7 +20,7 @@ def check_nii_gz_files(directory):
             print(f"{nii_file} 无法读取，可能是损坏的文件。错误信息：{e}")
 
 if __name__ == "__main__":
-    directory = "./datasets"
+    directory = "../datasets"
     for mode in ["Train", "Test"]:
         image_dir = os.path.join(directory, mode, "image")
         check_nii_gz_files(image_dir)
