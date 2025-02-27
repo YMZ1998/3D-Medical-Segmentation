@@ -1,12 +1,30 @@
 import glob
 import os
 
+import monai
 import numpy as np
 import torch
 from monai.data import DataLoader, Dataset
 from monai.metrics import DiceMetric, MeanIoU, HausdorffDistanceMetric
+from monai.transforms import (
+    CastToTyped,
+    LoadImaged,
+    Orientationd,
+    Spacingd,
+)
 
-from utils import get_xforms
+
+def get_transforms(keys=("pred", "label")):
+    transforms = [
+        LoadImaged(keys, ensure_channel_first=True, image_only=True),
+        Orientationd(keys, axcodes="LPI"),
+        Spacingd(keys, pixdim=(1.25, 1.25, 5.0), mode=("bilinear", "nearest")[: len(keys)]),
+    ]
+
+    dtype = (torch.uint8, torch.uint8)
+
+    transforms.extend([CastToTyped(keys, dtype=dtype)])
+    return monai.transforms.Compose(transforms)
 
 
 def calculate_metrics(data_loader):
@@ -19,7 +37,7 @@ def calculate_metrics(data_loader):
 
     with torch.no_grad():
         for data in data_loader:
-            pred, label = data["image"].to(device), data["label"].to(device)
+            pred, label = data["pred"].to(device), data["label"].to(device)
 
             pred = (pred > 0.5).float()
 
@@ -31,6 +49,7 @@ def calculate_metrics(data_loader):
 
             hd = hd_metric(pred, label)
             hd_scores.append(hd.item())
+            print(f"Dice Score: {dice.item():.4f}, IoU: {iou.item():.4f}, HD: {hd.item():.4f}")
 
     print(f"Average Dice Score: {np.mean(dice_scores):.4f}")
     print(f"Average IoU: {np.mean(iou_scores):.4f}")
@@ -46,17 +65,17 @@ if __name__ == "__main__":
 
     assert len(prediction_files) == len(label_files), "Prediction and label files do not match in number."
 
-    files = [{"image": pred, "label": lbl} for pred, lbl in zip(prediction_files, label_files)]
+    files = [{"pred": pred, "label": lbl} for pred, lbl in zip(prediction_files, label_files)]
 
     print(files)
 
-    transform = get_xforms("val", ("image", "label"))
+    transform = get_transforms(("pred", "label"))
 
     dataset = Dataset(data=files, transform=transform)
     data_loader = DataLoader(dataset, batch_size=1, num_workers=1)
 
     dice_metric = DiceMetric(include_background=False, reduction="mean")
     iou_metric = MeanIoU(include_background=False, reduction="mean")
-    hd_metric = HausdorffDistanceMetric(include_background=False, reduction="mean")
+    hd_metric = HausdorffDistanceMetric(include_background=False, reduction="mean", percentile=95)
 
     calculate_metrics(data_loader)
