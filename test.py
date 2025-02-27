@@ -33,8 +33,8 @@ def infer(data_folder, model_folder, prediction_folder,tta=False):
 
     # Load the images and labels
     image_folder = os.path.abspath(data_folder)
-    images = sorted(glob.glob(os.path.join(image_folder, "image", "*.nii.gz")))[:10]
-    labels = sorted(glob.glob(os.path.join(image_folder, "label", "*.nii.gz")))[:10]
+    images = sorted(glob.glob(os.path.join(image_folder, "image", "*.nii.gz")))[:]
+    labels = sorted(glob.glob(os.path.join(image_folder, "label", "*.nii.gz")))[:]
     logging.info(f"infer: image ({len(images)}) folder: {data_folder}")
     infer_files = [{"image": img, "label": label} for img, label in zip(images, labels)]
 

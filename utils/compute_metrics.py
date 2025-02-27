@@ -42,7 +42,7 @@ if __name__ == "__main__":
     label_folder = "../datasets/Test/label"
 
     prediction_files = sorted(glob.glob(os.path.join(prediction_folder, "*", "*.nii.gz")))
-    label_files = sorted(glob.glob(os.path.join(label_folder, "*.nii.gz")))[:2]
+    label_files = sorted(glob.glob(os.path.join(label_folder, "*.nii.gz")))[:len(prediction_files)]
 
     assert len(prediction_files) == len(label_files), "Prediction and label files do not match in number."
 
