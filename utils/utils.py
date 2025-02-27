@@ -60,10 +60,8 @@ def get_xforms(mode="train", keys=("image", "label")):
     return monai.transforms.Compose(xforms)
 
 
-def get_net(model_name="dynunet"):
+def get_net(model_name="dynunet", num_classes=2):
     """returns a unet model instance."""
-
-    num_classes = 2
     if model_name == "dynunet":
         net = DynUNet(
             spatial_dims=3,
@@ -84,7 +82,7 @@ def get_net(model_name="dynunet"):
             num_res_units=2,
         )
     elif model_name == 'unetr':
-        model = UNETR(
+        net = UNETR(
             in_channels=1,
             out_channels=14,
             img_size=(192, 192, 16),

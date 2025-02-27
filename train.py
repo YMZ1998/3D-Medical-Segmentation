@@ -12,18 +12,19 @@ from monai.transforms import (
     AsDiscreted,
 )
 
+from parse_args import parse_args
 from utils.utils import get_xforms, get_net, get_inferer, DiceCELoss
 
 
-def train(data_folder, model_folder, resume=False):
+def train(args):
     """run a training pipeline."""
 
-    os.makedirs(model_folder, exist_ok=True)
+    os.makedirs(args.model_folder, exist_ok=True)
 
     # Images and labels
-    images = sorted(glob.glob(os.path.join(data_folder, "image", "*.nii.gz")))[:]
-    labels = sorted(glob.glob(os.path.join(data_folder, "label", "*.nii.gz")))[:]
-    logging.info(f"training: image/label ({len(images)}) folder: {data_folder}")
+    images = sorted(glob.glob(os.path.join(args.data_folder, "image", "*.nii.gz")))[:]
+    labels = sorted(glob.glob(os.path.join(args.data_folder, "label", "*.nii.gz")))[:]
+    logging.info(f"training: image/label ({len(images)}) folder: {args.data_folder}")
 
     # Other parameters
     amp = False  # auto mixed precision
@@ -31,19 +32,18 @@ def train(data_folder, model_folder, resume=False):
     train_frac, val_frac = 0.8, 0.2
     n_train = int(train_frac * len(images))
     n_val = min(len(images) - n_train, int(val_frac * len(images)))
-    logging.info(f"training: train {n_train} val {n_val}, folder: {data_folder}")
+    logging.info(f"training: train {n_train} val {n_val}, folder: {args.data_folder}")
 
     train_files = [{keys[0]: img, keys[1]: seg} for img, seg in zip(images[:n_train], labels[:n_train])]
     val_files = [{keys[0]: img, keys[1]: seg} for img, seg in zip(images[-n_val:], labels[-n_val:])]
 
     # Create a training data loader
-    batch_size = 2
-    logging.info(f"batch size {batch_size}")
+    logging.info(f"batch size {args.batch_size}")
     train_transforms = get_xforms("train", keys)
     train_ds = monai.data.Dataset(data=train_files, transform=train_transforms)
     train_loader = monai.data.DataLoader(
         train_ds,
-        batch_size=batch_size,
+        batch_size=args.batch_size,
         shuffle=True,
         num_workers=2,
         pin_memory=torch.cuda.is_available(),
@@ -64,14 +64,16 @@ def train(data_folder, model_folder, resume=False):
     print(f"Using device: {device}")
 
     net = get_net().to(device)
-    max_epochs, lr, momentum = 500, 1e-4, 0.95
-    logging.info(f"epochs {max_epochs}, lr {lr}, momentum {momentum}")
-    opt = torch.optim.Adam(net.parameters(), lr=lr)
+
+    max_epochs = 500
+    logging.info(f"epochs {max_epochs}, lr {args.lr}")
+    params_to_optimize = [p for p in net.parameters() if p.requires_grad]
+    opt = torch.optim.AdamW(params_to_optimize, lr=args.lr, weight_decay=1e-2)
 
     # Load pre-trained weights if available
-    ckpts = sorted(glob.glob(os.path.join(model_folder, "*.pt")))
+    ckpts = sorted(glob.glob(os.path.join(args.model_folder, "*.pt")))
     checkpoint_path = ckpts[-1]
-    if resume:
+    if args.resume:
         logging.info(f"Loading pre-trained weights from {checkpoint_path}")
         checkpoint = torch.load(checkpoint_path)
         net.load_state_dict(checkpoint["net"])
@@ -85,7 +87,7 @@ def train(data_folder, model_folder, resume=False):
 
     val_handlers = [
         ProgressBar(),
-        CheckpointSaver(save_dir=model_folder, save_dict={
+        CheckpointSaver(save_dir=args.model_folder, save_dict={
             'net': net,
             'optimizer': opt,
         }, save_key_metric=True, key_metric_n_saved=3),
@@ -124,14 +126,10 @@ def train(data_folder, model_folder, resume=False):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run a basic UNet segmentation baseline.")
-    parser.add_argument("--data_folder", default=r"./datasets", type=str, help="training data folder")
-    parser.add_argument("--model_folder", default="./checkpoints", type=str, help="model folder")
-    parser.add_argument('--resume', action='store_true', default=False, help='resume from previous checkpoint')
-    args = parser.parse_args()
+    args = parse_args()
 
     monai.config.print_config()
     monai.utils.set_determinism(seed=0)
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-    train(data_folder=os.path.join(args.data_folder, "Train"), model_folder=args.model_folder, resume=args.resume)
+    train(args)

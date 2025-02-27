@@ -51,9 +51,9 @@ def calculate_metrics(data_loader):
             hd_scores.append(hd.item())
             print(f"Dice Score: {dice.item():.4f}, IoU: {iou.item():.4f}, HD: {hd.item():.4f}")
 
-    print(f"Average Dice Score: {np.mean(dice_scores):.4f}")
-    print(f"Average IoU: {np.mean(iou_scores):.4f}")
-    print(f"Average HD: {np.mean(hd_scores):.4f}")
+    print(f"Average Dice Score: {np.mean(dice_scores):.4f} ± {np.std(dice_scores):.4f}")
+    print(f"Average IoU: {np.mean(iou_scores):.4f} ± {np.std(iou_scores):.4f}")
+    print(f"Average HD: {np.mean(hd_scores):.4f} ± {np.std(hd_scores):.4f}")
 
 
 if __name__ == "__main__":
