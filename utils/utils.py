@@ -31,12 +31,12 @@ def get_xforms(mode="train", keys=("image", "label")):
         LoadImaged(keys, ensure_channel_first=True, image_only=True),
         Orientationd(keys, axcodes="LPI"),
         Spacingd(keys, pixdim=(1.25, 1.25, 5.0), mode=("bilinear", "nearest")[: len(keys)]),
+        ScaleIntensityRanged(keys[0], a_min=-500.0, a_max=1000.0, b_min=0.0, b_max=1.0, clip=True),
     ]
     if mode == "train":
         xforms.extend(
             [
-                ScaleIntensityRanged(keys[0], a_min=-1000.0, a_max=500.0, b_min=0.0, b_max=1.0, clip=True),
-                SpatialPadd(keys, spatial_size=(192, 192, -1), mode="reflect"),  # ensure at least 192x192
+                SpatialPadd(keys, spatial_size=(256, 256, -1), mode="reflect"),  # ensure at least 192x192
                 RandAffined(
                     keys,
                     prob=0.15,
@@ -44,7 +44,7 @@ def get_xforms(mode="train", keys=("image", "label")):
                     scale_range=(0.1, 0.1, None),
                     mode=("bilinear", "nearest"),
                 ),
-                RandCropByPosNegLabeld(keys, label_key=keys[1], spatial_size=(192, 192, 16), num_samples=3),
+                RandCropByPosNegLabeld(keys, label_key=keys[1], spatial_size=(256, 256, 16), num_samples=3),
                 RandGaussianNoised(keys[0], prob=0.15, std=0.01),
                 # RandFlipd(keys, spatial_axis=0, prob=0.5),
                 # RandFlipd(keys, spatial_axis=1, prob=0.5),
@@ -55,7 +55,6 @@ def get_xforms(mode="train", keys=("image", "label")):
     if mode == "val":
         dtype = (torch.float32, torch.uint8)
     if mode == "infer":
-        xforms.extend([ScaleIntensityRanged(keys[0], a_min=-1000.0, a_max=500.0, b_min=0.0, b_max=1.0, clip=True)])
         dtype = (torch.float32,)
     xforms.extend([CastToTyped(keys, dtype=dtype)])
     return monai.transforms.Compose(xforms)
@@ -107,7 +106,7 @@ def get_net(model_name="dynunet"):
 def get_inferer(_mode=None):
     """returns a sliding window inference instance."""
 
-    patch_size = (192, 192, 16)
+    patch_size = (256, 256, 16)
     sw_batch_size, overlap = 2, 0.2
     inferer = monai.inferers.SlidingWindowInferer(
         roi_size=patch_size,
