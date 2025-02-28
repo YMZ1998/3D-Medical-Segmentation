@@ -65,7 +65,7 @@ def get_inferer(_mode=None):
     """returns a sliding window inference instance."""
 
     patch_size = (256, 256, 16)
-    sw_batch_size, overlap = 2, 0.2
+    sw_batch_size, overlap = 4, 0.1
     inferer = monai.inferers.SlidingWindowInferer(
         roi_size=patch_size,
         sw_batch_size=sw_batch_size,

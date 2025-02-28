@@ -15,6 +15,7 @@ def backup_files(source_dir, backup_dir):
         source_file = os.path.join(source_dir, filename)
         if os.path.isfile(source_file):
             shutil.copy(source_file, backup_path)
+            os.remove(source_file)
 
     print(f"backup: {backup_path}")
 
