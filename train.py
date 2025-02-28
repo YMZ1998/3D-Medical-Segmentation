@@ -1,4 +1,3 @@
-import argparse
 import glob
 import logging
 import os
@@ -11,31 +10,33 @@ from monai.handlers import CheckpointSaver, MeanDice, StatsHandler, ValidationHa
 from monai.transforms import (
     AsDiscreted,
 )
+from sklearn.model_selection import train_test_split
 
-from parse_args import parse_args
-from utils.utils import get_xforms, get_net, get_inferer, DiceCELoss
+from parse_args import parse_args, get_net, get_device
+from utils.utils import get_xforms, get_inferer, DiceCELoss
 
 
 def train(args):
     """run a training pipeline."""
 
     os.makedirs(args.model_folder, exist_ok=True)
+    args.data_folder = os.path.join(args.data_folder, "Train")
 
     # Images and labels
     images = sorted(glob.glob(os.path.join(args.data_folder, "image", "*.nii.gz")))[:]
     labels = sorted(glob.glob(os.path.join(args.data_folder, "label", "*.nii.gz")))[:]
     logging.info(f"training: image/label ({len(images)}) folder: {args.data_folder}")
 
-    # Other parameters
-    amp = False  # auto mixed precision
     keys = ("image", "label")
-    train_frac, val_frac = 0.8, 0.2
-    n_train = int(train_frac * len(images))
-    n_val = min(len(images) - n_train, int(val_frac * len(images)))
-    logging.info(f"training: train {n_train} val {n_val}, folder: {args.data_folder}")
 
-    train_files = [{keys[0]: img, keys[1]: seg} for img, seg in zip(images[:n_train], labels[:n_train])]
-    val_files = [{keys[0]: img, keys[1]: seg} for img, seg in zip(images[-n_val:], labels[-n_val:])]
+    # Split the data into training and validation sets using train_test_split
+    train_files, val_files = train_test_split(list(zip(images, labels)), test_size=0.2, random_state=42)
+
+    logging.info(f"training: train {len(train_files)} val {len(val_files)}, folder: {args.data_folder}")
+
+    # Now we can create the list of dictionaries for the train and validation sets
+    train_files = [{keys[0]: img, keys[1]: seg} for img, seg in train_files]
+    val_files = [{keys[0]: img, keys[1]: seg} for img, seg in val_files]
 
     # Create a training data loader
     logging.info(f"batch size {args.batch_size}")
@@ -60,10 +61,9 @@ def train(args):
     )
 
     # Create Model, DiceLoss and Adam optimizer
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
+    device = get_device()
 
-    net = get_net().to(device)
+    net = get_net(args)
 
     max_epochs = 500
     logging.info(f"epochs {max_epochs}, lr {args.lr}")
@@ -102,7 +102,7 @@ def train(args):
             "val_mean_dice": MeanDice(include_background=False, output_transform=from_engine(["pred", "label"])),
         },
         val_handlers=val_handlers,
-        amp=amp,
+        amp=args.amp,
     )
 
     # Evaluator as an event handler of the trainer
@@ -120,7 +120,7 @@ def train(args):
         inferer=get_inferer(),
         key_train_metric=None,
         train_handlers=train_handlers,
-        amp=amp,
+        amp=args.amp,
     )
     trainer.run()
 

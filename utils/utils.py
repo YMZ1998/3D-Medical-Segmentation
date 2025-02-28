@@ -11,13 +11,11 @@ from monai.transforms import (
     Orientationd,
     RandAffined,
     RandCropByPosNegLabeld,
-    RandFlipd,
     RandGaussianNoised,
     ScaleIntensityRanged,
     Spacingd,
     SpatialPadd,
 )
-from monai.networks.nets import DynUNet, UNet, UNETR
 
 warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="torch")
@@ -60,45 +58,7 @@ def get_xforms(mode="train", keys=("image", "label")):
     return monai.transforms.Compose(xforms)
 
 
-def get_net(model_name="dynunet", num_classes=2):
-    """returns a unet model instance."""
-    if model_name == "dynunet":
-        net = DynUNet(
-            spatial_dims=3,
-            in_channels=1,
-            out_channels=num_classes,
-            kernel_size=[[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]],
-            strides=[[1, 1, 1], [2, 2, 2], [2, 2, 2], [2, 2, 2]],
-            upsample_kernel_size=[[2, 2, 2], [2, 2, 2], [2, 2, 2]],
-            dropout=0.1,
-        )
-    elif model_name == "unet":
-        net = UNet(
-            spatial_dims=3,
-            in_channels=1,
-            out_channels=num_classes,
-            channels=(16, 32, 64, 128, 256),
-            strides=(2, 2, 2, 2),
-            num_res_units=2,
-        )
-    elif model_name == 'unetr':
-        net = UNETR(
-            in_channels=1,
-            out_channels=14,
-            img_size=(192, 192, 16),
-            feature_size=16,
-            hidden_size=768,
-            mlp_dim=3072,
-            num_heads=12,
-            proj_type="perceptron",
-            norm_name="instance",
-            res_block=True,
-            dropout_rate=0.0,
-        )
-    else:
-        raise ValueError(f"model_name {model_name} not supported")
 
-    return net
 
 
 def get_inferer(_mode=None):

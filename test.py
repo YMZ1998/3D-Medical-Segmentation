@@ -10,23 +10,24 @@ import torch
 from monai.metrics import DiceMetric
 from monai.transforms import RandGaussianNoised
 
-from utils.utils import remove_and_create_dir, get_xforms, get_net, get_inferer
+from parse_args import parse_args, get_net, get_device
+from utils.utils import remove_and_create_dir, get_xforms, get_inferer
 
 
-def infer(data_folder, model_folder, prediction_folder,tta=False):
-    remove_and_create_dir(prediction_folder)
+def infer(args):
+    data_folder = os.path.join(args.data_folder, "Test")
+    remove_and_create_dir(args.prediction_folder)
 
     # Load the checkpoint
-    ckpts = sorted(glob.glob(os.path.join(model_folder, "*.pt")))
+    ckpts = sorted(glob.glob(os.path.join(args.model_folder, "*.pt")))
     ckpt = ckpts[-1]
     for x in ckpts:
         logging.info(f"available model file: {x}.")
     logging.info(f"using {ckpt}.")
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
+    device = get_device()
 
-    net = get_net().to(device)
+    net = get_net(args)
     checkpoint = torch.load(ckpt, weights_only=False, map_location='cpu')
     net.load_state_dict(checkpoint["net"])
     net.eval()
@@ -50,7 +51,7 @@ def infer(data_folder, model_folder, prediction_folder,tta=False):
     )
 
     inferer = get_inferer()
-    saver = monai.transforms.SaveImage(output_dir=prediction_folder, output_postfix='seg', mode="nearest",
+    saver = monai.transforms.SaveImage(output_dir=args.prediction_folder, output_postfix='seg', mode="nearest",
                                        resample=True, output_dtype="int8")
 
     # Initialize the Dice Metric for evaluation
@@ -64,7 +65,7 @@ def infer(data_folder, model_folder, prediction_folder,tta=False):
 
             # Apply test time augmentations (TTA)
             n = 1.0
-            if tta:
+            if args.tta:
                 for i in range(4):
                     print(i)
                     _img = RandGaussianNoised(keys[0], prob=1.0, std=0.01)(infer_data)[keys[0]]
@@ -100,15 +101,7 @@ def infer(data_folder, model_folder, prediction_folder,tta=False):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run a basic UNet segmentation baseline.")
-    parser.add_argument("--data_folder", default=r"./datasets", type=str, help="training data folder")
-    parser.add_argument("--model_folder", default="./checkpoints", type=str, help="model folder")
-    parser.add_argument("--tta", default=False, type=bool, help="TTA")
-    args = parser.parse_args()
-
-    # monai.config.print_config()
-    # monai.utils.set_determinism(seed=0)
+    args = parse_args()
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-    infer(data_folder=os.path.join(args.data_folder, "Test"), model_folder=args.model_folder,
-          prediction_folder="./predictions", tta=args.tta)
+    infer(args)
