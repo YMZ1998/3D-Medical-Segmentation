@@ -76,17 +76,19 @@ def get_inferer(_mode=None):
 class DiceCELoss(nn.Module):
     """Dice and Xentropy loss"""
 
-    def __init__(self):
+    def __init__(self, alpha=0.5):
         super().__init__()
         self.dice = monai.losses.DiceLoss(to_onehot_y=True, softmax=True)
         self.cross_entropy = nn.CrossEntropyLoss()
+        self.alpha = alpha
 
     def forward(self, y_pred, y_true):
         dice = self.dice(y_pred, y_true)
         # CrossEntropyLoss target needs to have shape (B, D, H, W)
         # Target from pipeline has shape (B, 1, D, H, W)
         cross_entropy = self.cross_entropy(y_pred, torch.squeeze(y_true, dim=1).long())
-        return dice + cross_entropy
+
+        return self.alpha * dice + (1 - self.alpha) * cross_entropy
 
 
 def remove_and_create_dir(path):
