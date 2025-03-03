@@ -58,7 +58,7 @@ def calculate_metrics(data_loader):
 
 if __name__ == "__main__":
     prediction_folder = "../predictions"
-    label_folder = "../datasets/Test/label"
+    label_folder = "../datasets/Val/label"
 
     prediction_files = sorted(glob.glob(os.path.join(prediction_folder, "*", "*.nii.gz")))
     label_files = sorted(glob.glob(os.path.join(label_folder, "*.nii.gz")))[:len(prediction_files)]

@@ -14,8 +14,8 @@ from parse_args import parse_args, get_net, get_device
 from utils.utils import remove_and_create_dir, get_xforms, get_inferer
 
 
-def infer(args):
-    data_folder = os.path.join(args.data_folder, "Test")
+def test(args):
+    data_folder = os.path.join(args.data_folder, "Val")
     remove_and_create_dir(args.prediction_folder)
 
     # Load the checkpoint
@@ -46,7 +46,7 @@ def infer(args):
     infer_loader = monai.data.DataLoader(
         infer_ds,
         batch_size=1,
-        num_workers=8,
+        num_workers=2,
         pin_memory=torch.cuda.is_available(),
     )
 
@@ -89,19 +89,9 @@ def infer(args):
 
     logging.info(f"Average Dice Score: {np.mean(dice_scores):.4f}")
 
-    # Copy the saved segmentations into the required folder structure for submission
-    # submission_dir = os.path.join(prediction_folder, "to_submit")
-    # if not os.path.exists(submission_dir):
-    #     os.makedirs(submission_dir)
-    # files = glob.glob(os.path.join(prediction_folder, "*", "*.nii.gz"))
-    # for f in files:
-    #     to_name = os.path.join(submission_dir, os.path.basename(f))
-    #     shutil.copy(f, to_name)
-    # logging.info(f"predictions copied to {submission_dir}.")
-
 
 if __name__ == "__main__":
     args = parse_args()
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-    infer(args)
+    test(args)

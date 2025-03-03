@@ -16,27 +16,61 @@ from parse_args import parse_args, get_net, get_device
 from utils.utils import get_xforms, get_inferer, DiceCELoss
 
 
+def get_train_val_files_split(data_folder, test_size=0.2, random_state=42):
+    data_folder = os.path.join(data_folder, "Train")
+
+    # Collect images and labels
+    images = sorted(glob.glob(os.path.join(data_folder, "image", "*.nii.gz")))
+    labels = sorted(glob.glob(os.path.join(data_folder, "label", "*.nii.gz")))
+
+    logging.info(f"Dataset contains {len(images)} images and labels in folder: {data_folder}")
+
+    # Ensure matching number of images and labels
+    assert len(images) == len(labels), "Mismatch between number of images and labels!"
+
+    keys = ("image", "label")
+
+    # Split data into training and validation sets
+    train_files, val_files = train_test_split(
+        list(zip(images, labels)), test_size=test_size, random_state=random_state
+    )
+
+    logging.info(f"Split dataset into train ({len(train_files)}) and val ({len(val_files)})")
+
+    # Format as list of dictionaries
+    train_files = [{keys[0]: img, keys[1]: seg} for img, seg in train_files]
+    val_files = [{keys[0]: img, keys[1]: seg} for img, seg in val_files]
+
+    return train_files, val_files
+
+
+def get_train_val_files(data_folder):
+
+    train_folder = os.path.join(data_folder, "Train")
+    test_folder = os.path.join(data_folder, "Val")
+
+    def load_data(folder):
+        images = sorted(glob.glob(os.path.join(folder, "image", "*.nii.gz")))
+        labels = sorted(glob.glob(os.path.join(folder, "label", "*.nii.gz")))
+        assert len(images) == len(labels), f"Mismatch between images and labels in {folder}!"
+        return [{"image": img, "label": seg} for img, seg in zip(images, labels)]
+
+    train_files = load_data(train_folder)
+    test_files = load_data(test_folder)
+
+    logging.info(f"Loaded {len(train_files)} train samples and {len(test_files)} test samples from {data_folder}")
+
+    return train_files, test_files
+
+
 def train(args):
     """run a training pipeline."""
 
     os.makedirs(args.model_folder, exist_ok=True)
-    args.data_folder = os.path.join(args.data_folder, "Train")
 
-    # Images and labels
-    images = sorted(glob.glob(os.path.join(args.data_folder, "image", "*.nii.gz")))[:]
-    labels = sorted(glob.glob(os.path.join(args.data_folder, "label", "*.nii.gz")))[:]
-    logging.info(f"training: image/label ({len(images)}) folder: {args.data_folder}")
+    train_files, val_files = get_train_val_files(args.data_folder)
 
     keys = ("image", "label")
-
-    # Split the data into training and validation sets using train_test_split
-    train_files, val_files = train_test_split(list(zip(images, labels)), test_size=0.2, random_state=42)
-
-    logging.info(f"training: train {len(train_files)} val {len(val_files)}, folder: {args.data_folder}")
-
-    # Now we can create the list of dictionaries for the train and validation sets
-    train_files = [{keys[0]: img, keys[1]: seg} for img, seg in train_files]
-    val_files = [{keys[0]: img, keys[1]: seg} for img, seg in val_files]
 
     # Create a training data loader
     logging.info(f"batch size {args.batch_size}")
