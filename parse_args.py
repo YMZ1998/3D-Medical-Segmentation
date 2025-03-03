@@ -26,13 +26,10 @@ def get_net(args):
             in_channels=1,
             out_channels=args.num_classes,
             kernel_size=[[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]],
-            strides=[[1, 1, 1], [2, 2, 2], [2, 2, 1], [2, 2, 1]],
-            upsample_kernel_size=[[2, 2, 2], [2, 2, 1], [2, 2, 1]],
-            deep_supervision=True,
-            deep_supr_num=2,
+            strides=[[1, 1, 1], [2, 2, 2], [2, 2, 2], [2, 2, 2]],
+            upsample_kernel_size=[[2, 2, 2], [2, 2, 2], [2, 2, 2]],
             res_block=True,
-            norm_name="BATCH",
-            act_name="RELU",
+            norm_name="batch",
             dropout=0.1,
         )
     elif args.arch == "unet":
