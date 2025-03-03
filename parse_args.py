@@ -26,8 +26,13 @@ def get_net(args):
             in_channels=1,
             out_channels=args.num_classes,
             kernel_size=[[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]],
-            strides=[[1, 1, 1], [2, 2, 2], [2, 2, 2], [2, 2, 2]],
-            upsample_kernel_size=[[2, 2, 2], [2, 2, 2], [2, 2, 2]],
+            strides=[[1, 1, 1], [2, 2, 2], [2, 2, 1], [2, 2, 1]],
+            upsample_kernel_size=[[2, 2, 2], [2, 2, 1], [2, 2, 1]],
+            deep_supervision=True,
+            deep_supr_num=2,
+            res_block=True,
+            norm_name="BATCH",
+            act_name="RELU",
             dropout=0.1,
         )
     elif args.arch == "unet":
@@ -58,7 +63,7 @@ def get_net(args):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run a basic UNet segmentation baseline.")
-    parser.add_argument('--arch', '-a', metavar='ARCH', default='unetr', help='unet/dynunet/unetr')
+    parser.add_argument('--arch', '-a', metavar='ARCH', default='dynunet', help='unet/dynunet/unetr')
     parser.add_argument("--data_folder", default=r"./datasets", type=str, help="training data folder")
     parser.add_argument("--model_folder", default="./checkpoints", type=str, help="model folder")
     parser.add_argument("--prediction_folder", default="./predictions", type=str, help="prediction folder")

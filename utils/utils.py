@@ -58,9 +58,6 @@ def get_xforms(mode="train", keys=("image", "label")):
     return monai.transforms.Compose(xforms)
 
 
-
-
-
 def get_inferer(_mode=None):
     """returns a sliding window inference instance."""
 

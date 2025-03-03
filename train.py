@@ -71,9 +71,8 @@ def train(args):
     opt = torch.optim.AdamW(params_to_optimize, lr=args.lr, weight_decay=1e-2)
 
     # Load pre-trained weights if available
-    ckpts = sorted(glob.glob(os.path.join(args.model_folder, "*.pt")))
-    checkpoint_path = ckpts[-1]
     if args.resume:
+        checkpoint_path = sorted(glob.glob(os.path.join(args.model_folder, "*.pt")))[-1]
         logging.info(f"Loading pre-trained weights from {checkpoint_path}")
         checkpoint = torch.load(checkpoint_path)
         net.load_state_dict(checkpoint["net"])
