@@ -80,7 +80,7 @@ def parse_args():
     parser.add_argument("--image_size", default=(256, 256, 16), type=tuple, help="image size")
     parser.add_argument("--num_classes", default=2, type=int)
     parser.add_argument("--batch_size", default=2, type=int)
-    parser.add_argument("--epochs", default=500, type=int, metavar="N", help="number of total epochs to train")
+    parser.add_argument("--epochs", default=200, type=int, metavar="N", help="number of total epochs to train")
 
     # Mixed precision training parameters
     parser.add_argument("--amp", default=False, type=bool, help="Use torch.cuda.amp for mixed precision training")
