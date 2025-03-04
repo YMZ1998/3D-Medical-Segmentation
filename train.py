@@ -50,8 +50,8 @@ def get_train_val_files(data_folder):
     val_folder = os.path.join(data_folder, "Val")
 
     def load_data(folder):
-        images = sorted(glob.glob(os.path.join(folder, "image", "*.nii.gz")))[:1]
-        labels = sorted(glob.glob(os.path.join(folder, "label", "*.nii.gz")))[:1]
+        images = sorted(glob.glob(os.path.join(folder, "image", "*.nii.gz")))[:]
+        labels = sorted(glob.glob(os.path.join(folder, "label", "*.nii.gz")))[:]
         assert len(images) == len(labels), f"Mismatch between images and labels in {folder}!"
         return [{"image": img, "label": seg} for img, seg in zip(images, labels)]
 
@@ -122,6 +122,7 @@ def train(args):
 
     val_handlers = [
         ProgressBar(),
+        StatsHandler(output_transform=lambda x: x),
         CheckpointSaver(save_dir=args.model_folder, save_dict={
             'net': net,
             'optimizer': opt,

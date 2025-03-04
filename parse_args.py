@@ -21,15 +21,6 @@ def get_net(args):
     device = get_device()
 
     if args.arch == "dynunet":
-        # net = DynUNet(
-        #     spatial_dims=3,
-        #     in_channels=1,
-        #     out_channels=args.num_classes,
-        #     kernel_size=[[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]],
-        #     strides=[[1, 1, 1], [2, 2, 2], [2, 2, 2], [2, 2, 2]],
-        #     upsample_kernel_size=[[2, 2, 2], [2, 2, 2], [2, 2, 2]],
-        #     dropout=0.1,
-        # )
         net = DynUNet(
             spatial_dims=3,
             in_channels=1,
@@ -37,10 +28,19 @@ def get_net(args):
             kernel_size=[[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]],
             strides=[[1, 1, 1], [2, 2, 2], [2, 2, 2], [2, 2, 2]],
             upsample_kernel_size=[[2, 2, 2], [2, 2, 2], [2, 2, 2]],
-            res_block=True,
-            norm_name="batch",
             dropout=0.1,
         )
+        # net = DynUNet(
+        #     spatial_dims=3,
+        #     in_channels=1,
+        #     out_channels=args.num_classes,
+        #     kernel_size=[[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]],
+        #     strides=[[1, 1, 1], [2, 2, 2], [2, 2, 2], [2, 2, 2]],
+        #     upsample_kernel_size=[[2, 2, 2], [2, 2, 2], [2, 2, 2]],
+        #     res_block=True,
+        #     norm_name="batch",
+        #     dropout=0.1,
+        # )
     elif args.arch == "unet":
         net = UNet(
             spatial_dims=3,

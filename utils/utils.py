@@ -14,7 +14,7 @@ from monai.transforms import (
     RandGaussianNoised,
     ScaleIntensityRanged,
     Spacingd,
-    SpatialPadd,
+    SpatialPadd, RandFlipd,
 )
 
 warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
@@ -44,9 +44,9 @@ def get_xforms(mode="train", keys=("image", "label")):
                 ),
                 RandCropByPosNegLabeld(keys, label_key=keys[1], spatial_size=(256, 256, 16), num_samples=3),
                 RandGaussianNoised(keys[0], prob=0.15, std=0.01),
-                # RandFlipd(keys, spatial_axis=0, prob=0.5),
-                # RandFlipd(keys, spatial_axis=1, prob=0.5),
-                # RandFlipd(keys, spatial_axis=2, prob=0.5),
+                RandFlipd(keys, spatial_axis=0, prob=0.5),
+                RandFlipd(keys, spatial_axis=1, prob=0.5),
+                RandFlipd(keys, spatial_axis=2, prob=0.5),
             ]
         )
         dtype = (torch.float32, torch.uint8)
