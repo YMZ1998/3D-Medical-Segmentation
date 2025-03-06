@@ -94,14 +94,15 @@ def train(args):
         pin_memory=torch.cuda.is_available(),
     )
 
-    # Create Model, DiceLoss and Adam optimizer
+    # Create Model, DiceLoss and optimizer
     device = get_device()
 
     net = get_net(args)
 
     logging.info(f"epochs {args.epochs}, lr {args.lr}")
     params_to_optimize = [p for p in net.parameters() if p.requires_grad]
-    opt = torch.optim.AdamW(params_to_optimize, lr=args.lr, weight_decay=1e-2)
+    # opt = torch.optim.AdamW(params_to_optimize, lr=args.lr, weight_decay=1e-2)
+    opt = torch.optim.Adam(params_to_optimize, lr=args.lr)
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs, eta_min=1e-6)
 

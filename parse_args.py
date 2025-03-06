@@ -15,7 +15,6 @@ def get_net(args):
     print(f'model:{args.arch}\n'
           f'epoch:{args.epochs}\n'
           f'image size:{args.image_size}\n'
-          f'batch size:{args.batch_size}\n'
           f'num classes:{args.num_classes}')
     print('★' * 30)
     device = get_device()

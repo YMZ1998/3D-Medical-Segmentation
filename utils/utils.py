@@ -21,6 +21,7 @@ warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="torch")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="ignite")
 
+PATCH_SIZE=(256, 256, 16)
 
 def get_xforms(mode="train", keys=("image", "label")):
     """returns a composed transform for train/val/infer."""
@@ -34,15 +35,15 @@ def get_xforms(mode="train", keys=("image", "label")):
     if mode == "train":
         xforms.extend(
             [
-                SpatialPadd(keys, spatial_size=(256, 256, -1), mode="reflect"),  # ensure at least 192x192
+                SpatialPadd(keys, spatial_size=(PATCH_SIZE[0], PATCH_SIZE[1], -1), mode="reflect"),
                 RandAffined(
                     keys,
                     prob=0.15,
-                    rotate_range=(0.05, 0.05, None),  # 3 parameters control the transform on 3 dimensions
+                    rotate_range=(0.05, 0.05, None),
                     scale_range=(0.1, 0.1, None),
                     mode=("bilinear", "nearest"),
                 ),
-                RandCropByPosNegLabeld(keys, label_key=keys[1], spatial_size=(256, 256, 16), num_samples=3),
+                RandCropByPosNegLabeld(keys, label_key=keys[1], spatial_size=PATCH_SIZE, num_samples=3),
                 RandGaussianNoised(keys[0], prob=0.15, std=0.01),
                 RandFlipd(keys, spatial_axis=0, prob=0.5),
                 RandFlipd(keys, spatial_axis=1, prob=0.5),
@@ -58,10 +59,10 @@ def get_xforms(mode="train", keys=("image", "label")):
     return monai.transforms.Compose(xforms)
 
 
-def get_inferer(_mode=None):
+def get_inferer():
     """returns a sliding window inference instance."""
 
-    patch_size = (256, 256, 16)
+    patch_size = PATCH_SIZE
     sw_batch_size, overlap = 4, 0.1
     inferer = monai.inferers.SlidingWindowInferer(
         roi_size=patch_size,
