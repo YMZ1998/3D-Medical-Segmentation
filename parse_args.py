@@ -1,7 +1,7 @@
 import argparse
 
 import torch
-from monai.networks.nets import DynUNet, UNet, UNETR
+from monai.networks.nets import DynUNet, UNet, UNETR, SwinUNETR
 
 
 def get_device():
@@ -60,6 +60,15 @@ def get_net(args):
             norm_name="instance",
             dropout_rate=0.1,
         )
+    elif args.arch == 'swin_unetr':
+        # !wget https://github.com/Project-MONAI/MONAI-extra-test-data/releases/download/0.8.1/model_swinvit.pt
+        net = SwinUNETR(
+            img_size=args.image_size,
+            in_channels=1,
+            out_channels=args.num_classes,
+            feature_size=48,
+            use_checkpoint=True,
+        )
     else:
         raise ValueError(f"model_name {args.model_name} not supported")
 
@@ -68,7 +77,7 @@ def get_net(args):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run a basic UNet segmentation baseline.")
-    parser.add_argument('--arch', '-a', metavar='ARCH', default='dynunet', help='unet/dynunet/unetr')
+    parser.add_argument('--arch', '-a', metavar='ARCH', default='swin_unetr', help='unet/dynunet/unetr')
     parser.add_argument("--data_folder", default=r"./datasets", type=str, help="training data folder")
     parser.add_argument("--model_folder", default="./checkpoints", type=str, help="model folder")
     parser.add_argument("--prediction_folder", default="./predictions", type=str, help="prediction folder")
@@ -76,7 +85,7 @@ def parse_args():
     parser.add_argument('--lr', default=1e-4, type=float, help='initial learning rate')
     parser.add_argument('--resume', action='store_true', default=False, help='resume from previous checkpoint')
 
-    parser.add_argument("--image_size", default=(256, 256, 16), type=tuple, help="image size")
+    parser.add_argument("--image_size", default=(192, 192, 32), type=tuple, help="image size")
     parser.add_argument("--num_classes", default=2, type=int)
     parser.add_argument("--batch_size", default=2, type=int)
     parser.add_argument("--epochs", default=200, type=int, metavar="N", help="number of total epochs to train")
@@ -95,6 +104,9 @@ if __name__ == '__main__':
     from torchsummary import summary
 
     args = parse_args()
+    args.arch = 'swin_unetr'
+    args.image_size = (192, 192, 32)
 
     model = get_net(args)
+
     summary(model, (1, args.image_size[0], args.image_size[1], args.image_size[2]))

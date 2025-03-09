@@ -99,6 +99,11 @@ def train(args):
 
     net = get_net(args)
 
+    if args.arch == 'swin_unetr':
+        weight = torch.load("./model_swinvit.pt")
+        net.load_from(weights=weight)
+        print("Using pretrained self-supervied Swin UNETR backbone weights !")
+
     logging.info(f"epochs {args.epochs}, lr {args.lr}")
     params_to_optimize = [p for p in net.parameters() if p.requires_grad]
     # opt = torch.optim.AdamW(params_to_optimize, lr=args.lr, weight_decay=1e-2)

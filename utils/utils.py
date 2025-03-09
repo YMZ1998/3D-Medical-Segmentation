@@ -21,7 +21,7 @@ warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="torch")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="ignite")
 
-PATCH_SIZE=(256, 256, 16)
+PATCH_SIZE=(192, 192, 32)
 
 def get_xforms(mode="train", keys=("image", "label")):
     """returns a composed transform for train/val/infer."""
