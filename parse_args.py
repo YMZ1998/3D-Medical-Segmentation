@@ -77,7 +77,7 @@ def get_net(args):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run a basic UNet segmentation baseline.")
-    parser.add_argument('--arch', '-a', metavar='ARCH', default='swin_unetr', help='unet/dynunet/unetr')
+    parser.add_argument('--arch', '-a', metavar='ARCH', default='dynunet', help='unet/dynunet/unetr')
     parser.add_argument("--data_folder", default=r"./datasets", type=str, help="training data folder")
     parser.add_argument("--model_folder", default="./checkpoints", type=str, help="model folder")
     parser.add_argument("--prediction_folder", default="./predictions", type=str, help="prediction folder")
@@ -85,7 +85,7 @@ def parse_args():
     parser.add_argument('--lr', default=1e-4, type=float, help='initial learning rate')
     parser.add_argument('--resume', action='store_true', default=False, help='resume from previous checkpoint')
 
-    parser.add_argument("--image_size", default=(192, 192, 32), type=tuple, help="image size")
+    parser.add_argument("--image_size", default=(256, 256, 32), type=tuple, help="image size")
     parser.add_argument("--num_classes", default=2, type=int)
     parser.add_argument("--batch_size", default=2, type=int)
     parser.add_argument("--epochs", default=200, type=int, metavar="N", help="number of total epochs to train")
@@ -105,7 +105,7 @@ if __name__ == '__main__':
 
     args = parse_args()
     args.arch = 'swin_unetr'
-    args.image_size = (192, 192, 32)
+    args.image_size = (256, 256, 32)
 
     model = get_net(args)
 

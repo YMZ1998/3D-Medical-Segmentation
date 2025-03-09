@@ -100,14 +100,14 @@ def train(args):
     net = get_net(args)
 
     if args.arch == 'swin_unetr':
-        weight = torch.load("./model_swinvit.pt")
+        weight = torch.load("./checkpoints/model_swinvit.pt")
         net.load_from(weights=weight)
         print("Using pretrained self-supervied Swin UNETR backbone weights !")
 
     logging.info(f"epochs {args.epochs}, lr {args.lr}")
     params_to_optimize = [p for p in net.parameters() if p.requires_grad]
-    # opt = torch.optim.AdamW(params_to_optimize, lr=args.lr, weight_decay=1e-2)
-    opt = torch.optim.Adam(params_to_optimize, lr=args.lr)
+    opt = torch.optim.AdamW(params_to_optimize, lr=args.lr, weight_decay=1e-2)
+    # opt = torch.optim.Adam(params_to_optimize, lr=args.lr)
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs, eta_min=1e-6)
 
@@ -117,8 +117,8 @@ def train(args):
         logging.info(f"Loading pre-trained weights from {checkpoint_path}")
         checkpoint = torch.load(checkpoint_path)
         net.load_state_dict(checkpoint["net"])
-        opt.load_state_dict(checkpoint["optimizer"])
-        scheduler.load_state_dict(checkpoint["scheduler"])
+        # opt.load_state_dict(checkpoint["optimizer"])
+        # scheduler.load_state_dict(checkpoint["scheduler"])
         logging.info(f"Resuming training.")
 
     # Create evaluator (to be used to measure model quality during training)
