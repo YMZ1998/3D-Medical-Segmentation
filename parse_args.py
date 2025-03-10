@@ -81,13 +81,14 @@ def parse_args():
     parser.add_argument("--data_folder", default=r"./datasets", type=str, help="training data folder")
     parser.add_argument("--model_folder", default="./checkpoints", type=str, help="model folder")
     parser.add_argument("--prediction_folder", default="./predictions", type=str, help="prediction folder")
+    parser.add_argument("--inference_dir", default="./results", type=str, help="inference folder")
 
     parser.add_argument('--lr', default=1e-4, type=float, help='initial learning rate')
     parser.add_argument('--resume', action='store_true', default=False, help='resume from previous checkpoint')
 
     parser.add_argument("--image_size", default=(256, 256, 32), type=tuple, help="image size")
     parser.add_argument("--num_classes", default=2, type=int)
-    parser.add_argument("--batch_size", default=2, type=int)
+    parser.add_argument("--batch_size", default=1, type=int)
     parser.add_argument("--epochs", default=200, type=int, metavar="N", help="number of total epochs to train")
 
     # Mixed precision training parameters

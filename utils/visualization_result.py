@@ -49,8 +49,8 @@ def visualize_image_label_pred(image_path, label_path, pred_path):
 
 if __name__ == "__main__":
     prediction_folder = "../predictions"
-    label_folder = "../datasets/Test/label"
-    image_folder = "../datasets/Test/image"
+    label_folder = "../datasets/Val/label"
+    image_folder = "../datasets/Val/image"
 
     prediction_files = sorted(glob.glob(os.path.join(prediction_folder, "*", "*.nii.gz")))
     label_files = sorted(glob.glob(os.path.join(label_folder, "*.nii.gz")))[:len(prediction_files)]
