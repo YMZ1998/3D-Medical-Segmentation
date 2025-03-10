@@ -14,7 +14,7 @@ from utils.utils import remove_and_create_dir, get_xforms, get_inferer
 
 def infer(args):
     data_folder = os.path.join(args.data_folder, "Test")
-    remove_and_create_dir(args.prediction_folder)
+    remove_and_create_dir(args.inference_dir)
 
     # Load the checkpoint
     ckpts = sorted(glob.glob(os.path.join(args.model_folder, "*.pt")))
@@ -47,7 +47,7 @@ def infer(args):
     )
 
     inferer = get_inferer()
-    saver = monai.transforms.SaveImage(output_dir=args.prediction_folder, output_postfix='seg', mode="nearest",
+    saver = monai.transforms.SaveImage(output_dir=args.inference_dir, output_postfix='seg', mode="nearest",
                                        resample=True, output_dtype="int8")
 
     with torch.no_grad():
@@ -74,10 +74,10 @@ def infer(args):
             for p in preds:  # Save each segmented image
                 saver(p)
     # Copy the saved segmentations into the required folder structure for submission
-    submission_dir = os.path.join(args.prediction_folder, "to_submit")
+    submission_dir = os.path.join(args.inference_dir, "to_submit")
     if not os.path.exists(submission_dir):
         os.makedirs(submission_dir)
-    files = glob.glob(os.path.join(args.prediction_folder, "*", "*.nii.gz"))
+    files = glob.glob(os.path.join(args.inference_dir, "*", "*.nii.gz"))
     for f in files:
         to_name = os.path.join(submission_dir, os.path.basename(f))
         shutil.copy(f, to_name)

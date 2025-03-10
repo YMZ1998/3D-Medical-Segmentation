@@ -99,7 +99,7 @@ def train(args):
 
     net = get_net(args)
 
-    if args.arch == 'swin_unetr':
+    if args.arch == 'swin_unetr' and not args.resume:
         weight = torch.load("./checkpoints/model_swinvit.pt")
         net.load_from(weights=weight)
         print("Using pretrained self-supervied Swin UNETR backbone weights !")
